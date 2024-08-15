@@ -19,70 +19,13 @@ class CardPickingEnv(gym.Env):
         self.generate_possible_next_states_dict()  # generates a dictionary with list of possible states for each state
         self.current_state = None
 
-    # def step_old(self, action):
-    #     current_index = np.argmax(self.current_state)
-    #     current_state = self.states_list[current_index]
-    #     possible_next_states = self.possible_states_dict[current_state]
-    #
-    #     if self.selected_cards_counter < self.cards_select_limit:
-    #         next_state = ''
-    #
-    #         if len(possible_next_states[action]) > 0:
-    #             next_state = random.choice(possible_next_states[action])
-    #
-    #         if len(next_state) == 0:
-    #             reward = 0
-    #             done = True
-    #             self.current_state = np.zeros(len(self.states_list))
-    #             # return self.current_state, reward, done, {}
-    #             return current_index, reward, done, {}
-    #
-    #         selected_cards = [int(x) for x in next_state[next_state.index("|") + 1:next_state.index(")")] if x.isnumeric()]
-    #         card_in_hand = int(next_state[next_state.index("(") + 1:next_state.index("|")])
-    #         card_to_be_swapped = sorted(selected_cards)[0] if len(selected_cards) > 0 else 0
-    #
-    #         reward = 0
-    #         match action:
-    #             case 0:
-    #                 sum_of_selected_cards = sum(selected_cards)
-    #                 if card_to_be_swapped < card_in_hand:
-    #                     reward = sum_of_selected_cards - card_in_hand
-    #                 else:
-    #                     reward = sum_of_selected_cards
-    #
-    #             case 1:
-    #                 if card_to_be_swapped == 0:
-    #                     selected_cards.append(card_in_hand)
-    #                 else:
-    #                     selected_cards[selected_cards.index(card_to_be_swapped)] = card_in_hand
-    #                 sum_of_selected_cards = sum(selected_cards)
-    #                 reward = sum_of_selected_cards
-    #
-    #         self.current_state = np.zeros(len(self.states_list))
-    #         self.current_state[self.state_to_index[next_state]] = 1
-    #         done = False
-    #         self.selected_cards_counter += 1
-    #         return self.state_to_index[next_state], reward, done, {}
-    #
-    #     reward = 0
-    #     done = True
-    #     self.current_state = np.zeros(len(self.states_list))
-    #     # return self.current_state, reward, done, {}
-    #     return current_index, reward, done, {}
-
     def step(self, action):
         current_index = np.argmax(self.current_state)
         current_state = self.states_list[current_index]
         possible_next_states = self.possible_states_dict[current_state]
-        #limit:2 current scenario: (1|2,3), action: PICK-2, (1|2,3): {2: []}
         done = False
         reward = 0
         if len(possible_next_states[action]) == 0:
-            # selected_cards_current_state = [int(x) for x in
-            #                                 current_state[current_state.index("|") + 1:current_state.index(")")] if
-            #                                 x.isnumeric()]
-            # card_in_hand = int(current_state[current_state.index("(") + 1:current_state.index("|")])
-            # return current_index, sum(selected_cards_current_state) - card_in_hand, True, {}
             return current_index, 0, True, {}
 
         next_state = random.choice(possible_next_states[action])
@@ -93,11 +36,6 @@ class CardPickingEnv(gym.Env):
         selected_cards_next_state = [int(x) for x in next_state[next_state.index("|") + 1:next_state.index(")")] if
                                      x.isnumeric()]
 
-        # if sum(selected_cards_current_state) > sum(selected_cards_next_state):
-        #     reward = sum(selected_cards_current_state) - sum(selected_cards_next_state)
-        # else:
-        #     reward = sum(selected_cards_next_state) - sum(selected_cards_current_state)
-        # (1|2,3) and possible next state as (2|1,3) (swap)
         reward = sum(selected_cards_next_state) - sum(selected_cards_current_state)
 
         if action == 1: # (pick)
