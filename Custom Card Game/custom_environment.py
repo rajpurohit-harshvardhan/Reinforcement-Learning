@@ -49,7 +49,8 @@ class CardPickingEnv(gym.Env):
 
     def reset(self):
         self.current_state = np.zeros(len(self.states_list))
-        random_state = self.states_list[random.randrange(self.number_of_states)]
+        random_state = self.states_list[random.randrange(0, self.number_of_states-1)]
+        # random_state = self.states_list[random.randrange(self.number_of_states)]
         self.current_state[self.state_to_index[random_state]] = 1
         current_index = np.argmax(self.current_state)
         selected_state = self.states_list[current_index]

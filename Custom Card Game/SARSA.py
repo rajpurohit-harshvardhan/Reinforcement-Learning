@@ -3,7 +3,7 @@ from custom_environment import CardPickingEnv
 import tabulate
 
 alpha = 0.85
-epsilon = 0.5
+epsilon = 0.9
 gamma = 0.95
 
 
