@@ -1,10 +1,11 @@
 import gymnasium as gym
 import numpy as np
 import math
+import pickle
 import matplotlib.pyplot as plt
 
-alpha = 0.09
-epsilon = 0.5
+alpha = 0.082
+epsilon = 0.1
 gamma = 0.99
 
 total_episodes = 10000
@@ -81,6 +82,11 @@ def train(total_episodes, max_steps, env, Q):
                     episodes_beating_game += 1
                 break
 
+    # saving the Q table in a file
+    f = open("cartpole.pkl", "wb")
+    pickle.dump(Q, f)
+    f.close()
+
     lists = sorted(data.items())  # sorted by key, return a list of tuples
     lists2 = sorted(data.values())  # sorted by values, return a list of values
     x, y = zip(*lists)  # unpack a list of pairs into two tuples
@@ -100,8 +106,14 @@ def train(total_episodes, max_steps, env, Q):
     return Q
 
 
-def play(Q):
+def play():
     env = gym.make('CartPole-v1', render_mode='human')
+
+    # Read the Q table from the File
+    f = open("cartpole.pkl", "rb")
+    Q = pickle.load(f)
+    f.close()
+
     for i in range(5):
         t = 0
         reset_state = env.reset()[0]
@@ -131,6 +143,6 @@ def main():
     env,Q = create_environment()
     # print(env, Q)
     Q = train(total_episodes, max_steps, env, Q)
-    play(Q)
+    play()
 
 main()
