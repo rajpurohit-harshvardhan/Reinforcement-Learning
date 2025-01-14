@@ -48,7 +48,8 @@ def train(total_episodes, max_steps, env, Q, epsilon):
         # state1 = (state_p, state_v)
 
         action1 = choose_action(state_p, state_v, Q, env)
-        print("Episode ::", episode)
+        if episode % (total_episodes / 10) == 0:
+            print("#### Episode:", episode, " :: action :", action1, ", Epsilon Value::", epsilon)
         rewards = 0
 
         while rewards > -1000:
@@ -151,6 +152,6 @@ def play(Q):
 def main():
     env,Q = create_environment()
     Q = train(total_episodes, max_steps, env, Q, epsilon)
-    play(Q)
+    # play(Q)
 
 main()
