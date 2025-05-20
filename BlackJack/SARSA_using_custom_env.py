@@ -22,6 +22,18 @@ usable_ace = np.linspace(0, 1, 2)
 print("Observation space ::", tuple([player_score, dealer_score, usable_ace]))
 
 
+def moving_average(data, window_size):
+    averages = []
+    start = 0
+    end = 0
+    for i in range(int(len(data) - window_size + 1)):
+        end = start + window_size
+        window = data[start: end]
+        avg = sum(window) / window_size
+        averages.append(avg)
+        start = start + 1
+    return averages
+
 def create_environment():
     env = BlackJackEnv(has_infinite_deck=True)
     # env = gym.make('Blackjack-v1')
@@ -30,32 +42,32 @@ def create_environment():
     return env, Q, hit_table
 
 
-def choose_action(state, Q, env):
+def choose_action(state, Q, env, epsilon):
     if np.random.random() < epsilon:
         action = env.action_space.sample()
     else:
-        # action = np.argmax(Q[state])
+        action = np.argmax(Q[state])
 
         # action :: 0 = STAND / 1 = HIT
-        action = 0
-        player_card_value = state[0]
-        dealer_card_value = state[1]
-
-        if player_card_value >= 17:
-            action = 0
-        elif 12 <= player_card_value <= 16:
-            if player_card_value == 16 and 9 <= dealer_card_value <= 11:
-                action = 0
-            elif player_card_value == 15 and dealer_card_value == 10:
-                action = 0
-            elif player_card_value == 12 and 2 <= dealer_card_value <= 3:
-                action = 1
-            elif 7 <= dealer_card_value <= 11:
-                action = 1
-            else:
-                action = 0
-        else:
-            action = 1
+        # action = 0
+        # player_card_value = state[0]
+        # dealer_card_value = state[1]
+        #
+        # if player_card_value >= 17:
+        #     action = 0
+        # elif 12 <= player_card_value <= 16:
+        #     if player_card_value == 16 and 9 <= dealer_card_value <= 11:
+        #         action = 0
+        #     elif player_card_value == 15 and dealer_card_value == 10:
+        #         action = 0
+        #     elif player_card_value == 12 and 2 <= dealer_card_value <= 3:
+        #         action = 1
+        #     elif 7 <= dealer_card_value <= 11:
+        #         action = 1
+        #     else:
+        #         action = 0
+        # else:
+        #     action = 1
 
     return action
 
@@ -70,6 +82,7 @@ def update(state, state2, reward, action, action2, Q):
 def train(total_episodes, max_steps, env, Q, epsilon, hit_table):
     data = {}
     episodes_beating_game = 0
+    win_history = []
     for episode in range(total_episodes):
         data[episode] = 0
         t = 0
@@ -81,7 +94,7 @@ def train(total_episodes, max_steps, env, Q, epsilon, hit_table):
 
         # hit_table[state_player][state_dealer] += 1
 
-        action1 = choose_action(state1, Q, env)
+        action1 = choose_action(state1, Q, env, epsilon)
         # print("Episode ::", episode)
         while t < max_steps:
             # Visualizing the training
@@ -107,7 +120,7 @@ def train(total_episodes, max_steps, env, Q, epsilon, hit_table):
             #     reward += 0.5
 
             # Choosing the next action
-            action2 = choose_action(state2, Q, env)
+            action2 = choose_action(state2, Q, env, epsilon)
 
             # Learning the Q-value
             Q = update(state1, state2, reward, action1, action2, Q)
@@ -117,6 +130,10 @@ def train(total_episodes, max_steps, env, Q, epsilon, hit_table):
             t += 1
 
             if done:
+                if reward == 1:
+                    win_history.append(1)
+                else:  # loss
+                    win_history.append(0)
                 data[episode] = reward
                 break
 
@@ -128,12 +145,24 @@ def train(total_episodes, max_steps, env, Q, epsilon, hit_table):
     pickle.dump(Q, f)
     f.close()
 
+    reward_values = [data[ep] for ep in range(total_episodes)]
+    smoothed_rewards = moving_average(reward_values, window_size=10000)
+
     lists = sorted(data.items())  # sorted by key, return a list of tuples
     lists2 = sorted(data.values())  # sorted by values, return a list of values
     x, y = zip(*lists)  # unpack a list of pairs into two tuples
-    plt.plot(x, y)
+    # plt.plot(x, y)
+    # plt.show()
+    # plt.plot(lists2)
+    # plt.show()
+    plt.plot(smoothed_rewards)
     plt.show()
-    plt.plot(lists2)
+
+    smoothed_win_rate = [w * 100 for w in moving_average(win_history, window_size=10000)]
+    plt.plot(smoothed_win_rate)
+    # plt.title("Win % (Moving Average)")
+    # plt.xlabel("Episode")
+    # plt.ylabel("Win Rate")
     plt.show()
 
     ## PLOTTING BOTH THE GRAPHS IN THE SAME IMAGE
@@ -159,7 +188,7 @@ def play():
     Q = pickle.load(f)
     f.close()
 
-    for i in range(100000):
+    for i in range(10000):
         t = 0
         reset_state = env.reset()[0]
         state_player = np.digitize(reset_state[0], player_score, True)
@@ -191,7 +220,7 @@ def play():
                 break
 
         # print("STEPS ::: ", t)
-    print("Wins::", wins, ", Losses:", losses, ", Ties:", ties)
+    print("Wins::", wins/100, ", Losses:", losses/100, ", Ties:", ties/100)
 
 
 def display_table(hit_table):
@@ -211,7 +240,7 @@ def main():
     # print(env, Q)
     Q, hit_table = train(total_episodes, max_steps, env, Q, epsilon, hit_table)
     # display_table(hit_table)
-    # play()
+    play()
 
 
 main()

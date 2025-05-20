@@ -145,6 +145,10 @@ class WarEnv(gym.Env):
         terminated = False
         if len(self.playerCards) == 0 or len(self.dealerCards) == 0:
             terminated = True
+            if len(self.dealerCards) == 0:
+                reward = 10
+            else:
+                reward = -10
 
         highest, _, lowest, _, index_equal = findHighestAndLowestCardValues(self.playerCards, self.shownCard if self.shownCard else 0)
         has_equal = 0

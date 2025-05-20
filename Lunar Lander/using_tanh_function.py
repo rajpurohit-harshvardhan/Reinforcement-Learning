@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 alpha = 0.1  # Learning Rate
 gamma = 0.95  # Discount Rate
 
-total_episodes = 150000
+total_episodes = 10000
 max_steps = 1000
 min_epsilon = 0.001
 max_epsilon = 1.0
@@ -28,7 +28,7 @@ observation_space = (lander_velocity_y, lander_angular_velocity)
 
 # This function initializes the Gymnasium environment and creates a structure for Q table
 def create_environment():
-    env = gym.make('LunarLander-v2')
+    env = gym.make('LunarLander-v3')
 
     # here Length+1 is done because in certain episodes the state values goes beyond the defined endpoints.
     Q = np.zeros((len(lander_velocity_y)+1, len(lander_angular_velocity)+1,  env.action_space.n))
@@ -285,14 +285,13 @@ def train(total_episodes, max_steps, env, Q, epsilon, hit_table):
 
             # if digitized_state_2 == 0:
             #     print("Episode :: ", episode, ", state_value :", state2[3])
-
+            rewards += reward
             reward = reward_action(reward, state2)
 
             Q = update(digitized_state_1, digitized_state_2, reward, action1, action2, Q)  # updating the Q Value
 
             action1 = action2  # using the action deduced earlier for taking the next step.
             t+=1
-            rewards += reward
             if done or trunc:
                 data[episode] = rewards
                 rewards = 0
@@ -307,14 +306,17 @@ def train(total_episodes, max_steps, env, Q, epsilon, hit_table):
         epsilon = min_epsilon + (max_epsilon - min_epsilon) * np.exp(-decay_rate * episode)
 
     # saving the Q table in a file
-    f = open("lunar_lander_conditions.pkl", "wb")
+    f = open("lunar_lander_conditions_graph.pkl", "wb")
     pickle.dump(Q, f)
     f.close()
 
     lists = sorted(data.items())  # sorted by key, return a list of tuples
+    lists2 = sorted(data.values())  # sorted by values, return a list of values
     x, y = zip(*lists)  # unpack a list of pairs into two tuples
     plt.plot(x, y)
-    # plt.show()
+    plt.show()
+    plt.plot(lists2)
+    plt.show()
 
     return Q, hit_table
 
@@ -353,7 +355,7 @@ def choose_action_heuristics(state, env):
 
 # this function is responsible for rendering the agent playing the game using the Q table we computed in the training
 def play(Q):
-    env = gym.make('LunarLander-v2', render_mode='human')
+    env = gym.make('LunarLander-v3')
 
     # Read the Q table from the File
     f = open("lunar_lander_conditions.pkl", "rb")
@@ -370,8 +372,8 @@ def play(Q):
         digitized_state_1 = (digitized_state_1_a, digitized_state_1_b)
         # print("STARTING STATE :::: ", state1, digitized_state_1)
 
-        # action1 = np.argmax(Q[digitized_state_1])  # since Q table stores the values with digitized state
-        action1 = choose_action_heuristics(state1, env)  # since Q table stores the values with digitized state
+        action1 = np.argmax(Q[digitized_state_1])  # since Q table stores the values with digitized state
+        # action1 = choose_action_heuristics(state1, env)  # since Q table stores the values with digitized state
 
         episode_finished = False
         counter = 0
@@ -427,10 +429,10 @@ def display_table(hit_table):
 
 def main():
     env, Q, hit_table = create_environment()
-    # Q, hit_table = train(total_episodes, max_steps, env, Q, epsilon, hit_table)
+    Q, hit_table = train(total_episodes, max_steps, env, Q, epsilon, hit_table)
     # display_table(hit_table)
     # print(Q)
-    play(Q)
+    # play(Q)
 
 
 main()

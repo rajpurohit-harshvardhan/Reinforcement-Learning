@@ -29,7 +29,7 @@ observation_space = (lander_velocity_y, lander_angular_velocity)
 
 # This function initializes the Gymnasium environment and creates a structure for Q table
 def create_environment():
-    env = gym.make('LunarLander-v2')
+    env = gym.make('LunarLander-v3')
 
     # here Length+1 is done because in certain episodes the state values goes beyond the defined endpoints.
     Q = np.zeros((len(lander_velocity_y) + 1, len(lander_angular_velocity) + 1, env.action_space.n))
@@ -327,7 +327,7 @@ def train(total_episodes, max_steps, env, Q, epsilon, hit_table, Q_x):
 
 # this function is responsible for rendering the agent playing the game using the Q table we computed in the training
 def play():
-    env = gym.make('LunarLander-v2', render_mode='human')
+    env = gym.make('LunarLander-v3')
 
     # Read the Q table from the File
     f = open("lunar_lander_conditions_new_tanh.pkl", "rb")
@@ -347,7 +347,7 @@ def play():
         digitized_state_1_a = digitize_states(math.tanh(state1[3]), lander_velocity_y)  # binning state value
         digitized_state_1_b = digitize_states(math.tanh(state1[5]), lander_angular_velocity)  # binning state value
         digitized_state_1 = (digitized_state_1_a, digitized_state_1_b)
-        print("STARTING STATE :::: ", state1, digitized_state_1)
+        # print("STARTING STATE :::: ", state1, digitized_state_1)
 
         digitized_state_1_x = (digitize_states(math.tanh(state1[2]), lander_velocity_x))  # binning state value
 

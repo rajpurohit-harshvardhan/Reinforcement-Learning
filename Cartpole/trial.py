@@ -1,183 +1,32 @@
 import gymnasium as gym
 import numpy as np
 import math
+import pickle
 import matplotlib.pyplot as plt
 
 alpha = 0.082
-epsilon = 0.5
 gamma = 0.99
 
-total_episodes = 22000
-max_steps = 600
+total_episodes = 10000
+max_steps = 1000
 
+epsilon = 1
+decay_rate = 1 / total_episodes
 
-def get_epsilon(t):
-    return max(0.1, min(1., 1. - math.log10((t + 1) / 25)))
-
-
-def get_learning_rate(t):
-    return max(0.1, min(1., 1. - math.log10((t + 1) / 25)))
-
-
-# def return_state_index_based_on_ang_velocity(state):
-#     if state < -5:
-#         return 0
-#     elif -5 <= state <= -4.5:
-#         return 1
-#     elif -4.5 <= state <= -4:
-#         return 2
-#     elif -4 <= state <= -3.5:
-#         return 3
-#     elif -3.5 <= state <= -3:
-#         return 4
-#     elif -3 <= state <= -2.5:
-#         return 5
-#     elif -2.5 <= state <= -2:
-#         return 6
-#     elif -2 <= state <= -1.5:
-#         return 7
-#     elif -1.5 <= state <= -1:
-#         return 8
-#     elif -1 <= state <= -0.5:
-#         return 9
-#     elif -0.5 <= state <= 0:
-#         return 10
-#     elif 0 <= state <= 0.5:
-#         return 11
-#     elif 0.5 <= state <= 1:
-#         return 12
-#     elif 1 <= state <= 1.5:
-#         return 13
-#     elif 1.5 <= state <= 2:
-#         return 14
-#     elif 2 <= state <= 2.5:
-#         return 15
-#     elif 2.5 <= state <= 3:
-#         return 16
-#     elif 3 <= state <= 3.5:
-#         return 17
-#     elif 3.5 <= state <= 4:
-#         return 18
-#     elif 4 <= state <= 4.5:
-#         return 19
-#     elif 4.5 <= state <= 5:
-#         return 20
-#     elif 5 < state:
-#         return 21
-def return_state_index_based_on_ang_velocity(state):
-    if state < -3:
-        return 0
-    elif -3 <= state < -2.7:
-        return 1
-    elif -2.7 <= state < -2.4:
-        return 2
-    elif -2.4 <= state < -2.1:
-        return 3
-    elif -2.1 <= state < -1.8:
-        return 4
-    elif -1.8 <= state < -1.5:
-        return 5
-    elif -1.5 <= state < -1.2:
-        return 6
-    elif -1.2 <= state < -0.9:
-        return 7
-    elif -0.9 <= state < -0.6:
-        return 8
-    elif -0.6 <= state < -0.3:
-        return 9
-    elif -0.3 <= state < 0:
-        return 10
-    elif 0 <= state < 0.3:
-        return 11
-    elif 0.3 <= state < 0.6:
-        return 12
-    elif 0.6 <= state < 0.9:
-        return 13
-    elif 0.9 <= state < 1.2:
-        return 14
-    elif 1.2 <= state < 1.5:
-        return 15
-    elif 1.5 <= state < 1.8:
-        return 16
-    elif 1.8 <= state < 2.1:
-        return 17
-    elif 2.1 <= state < 2.4:
-        return 18
-    elif 2.4 <= state < 2.7:
-        return 19
-    elif 2.7 <= state < 3:
-        return 20
-    elif 3 < state:
-        return 21
-
-
-def return_state_index_based_on_angle(state):
-    if -24 <= state <= -22:
-        return 0
-    elif -22 <= state <= -20:
-        return 1
-    elif -20 <= state <= -18:
-        return 2
-    elif -18 <= state <= -16:
-        return 3
-    elif -16 <= state <= -14:
-        return 4
-    elif -14 <= state <= -12:
-        return 5
-    elif -12 <= state <= -10:
-        return 6
-    elif -10 <= state <= -8:
-        return 7
-    elif -8 <= state <= -6:
-        return 8
-    elif -6 <= state <= -4:
-        return 9
-    elif -4 <= state <= -2:
-        return 10
-    elif -2 <= state <= 0:
-        return 11
-    elif 0 <= state <= 2:
-        return 12
-    elif 2 <= state <= 4:
-        return 13
-    elif 4 <= state <= 6:
-        return 14
-    elif 6 <= state <= 8:
-        return 15
-    elif 8 <= state <= 10:
-        return 16
-    elif 10 <= state <= 12:
-        return 17
-    elif 12 <= state <= 14:
-        return 18
-    elif 14 <= state <= 16:
-        return 19
-    elif 16 <= state <= 18:
-        return 20
-    elif 18 <= state <= 20:
-        return 21
-    elif 20 <= state <= 22:
-        return 22
-    elif 22 <= state <= 24:
-        return 23
-
-
-def return_state_index(angle, velocity):
-    state_angle = return_state_index_based_on_angle(math.degrees(angle))
-    state_velocity = return_state_index_based_on_ang_velocity(velocity)
-    if state_angle == state_velocity:
-        return state_angle
-    else:
-        return state_velocity
+velocity_space = np.linspace(-4, 4, 22)
+angle_space = np.linspace(-12, 12, 22)
+position_space = np.linspace(-4, 4, 10)
 
 
 def create_environment():
     env = gym.make('CartPole-v1')
-    Q = np.zeros((22, env.action_space.n))  # For 22 angular velocity parts
+    Q = np.zeros((len(angle_space)+1, len(velocity_space)+1, len(position_space)+1, env.action_space.n))
     return env, Q
 
 
 def choose_action(state, Q, env):
+    global epsilon
+
     if np.random.random() < epsilon:
         action = env.action_space.sample()
     else:
@@ -193,27 +42,35 @@ def update(state, state2, reward, action, action2, Q):
 
 
 def train(total_episodes, max_steps, env, Q):
+    global epsilon
+
     data = {}
+    episodes_beating_game = 0
     for episode in range(total_episodes):
         data[episode] = 0
         t = 0
         state = env.reset()[0]
-        state1 = return_state_index(state[2], state[3])  # for angular velocity
+        state_a = np.digitize(math.degrees(state[2]), angle_space)
+        state_v = np.digitize(state[3], velocity_space)
+        state_p = np.digitize(state[0], position_space)
+        state1 = (state_a, state_v, state_p)
 
         action1 = choose_action(state1, Q, env)
-        print("Episode ::", episode)
+
+        if episode % (total_episodes / 10) == 0:
+            print("#### Episode:", episode, " :: action :", action1, ", Epsilon Value::", epsilon)
+
         while t < max_steps:
             # Visualizing the training
             # env.render()
 
             # Getting the next state
             state2, reward, done, trunc, info = env.step(action1)
-            cart_pos = state2[1]
-            state2 = return_state_index(state2[2], state2[3])
+            newstate_a = np.digitize(math.degrees(state2[2]), angle_space)
+            newstate_v = np.digitize(state2[3], velocity_space)
+            newstate_p = np.digitize(state2[0], position_space)
+            state2 = (newstate_a, newstate_v, newstate_p)
 
-            if state2 is None:
-                data[episode] = t
-                break
 
             # Choosing the next action
             action2 = choose_action(state2, Q, env)
@@ -229,10 +86,16 @@ def train(total_episodes, max_steps, env, Q):
 
             # If at the end of learning process
             if done:
-                if state1 < 1 or state1 > 21:
-                    if cart_pos < -1 or cart_pos > 1:
-                        data[episode] = t
-                        break
+                data[episode] = t
+                if t > 500:
+                    episodes_beating_game += 1
+                break
+
+        epsilon = max(epsilon - decay_rate, 0)
+    # saving the Q table in a file
+    f = open("cartpole_1.pkl", "wb")
+    pickle.dump(Q, f)
+    f.close()
 
     lists = sorted(data.items())  # sorted by key, return a list of tuples
     lists2 = sorted(data.values())  # sorted by values, return a list of values
@@ -249,19 +112,32 @@ def train(total_episodes, max_steps, env, Q):
     # ax2.plot(lists2)
     # plt.show()
 
+    print("Total Episodes where the agent aced the game:", episodes_beating_game)
     return Q
 
 
-def play(Q):
-    env = gym.make('CartPole-v1', render_mode='human')
+def play():
+    env = gym.make('CartPole-v1')
+
+    # Read the Q table from the File
+    f = open("cartpole_1.pkl", "rb")
+    Q = pickle.load(f)
+    f.close()
+
     for i in range(5):
         t = 0
         reset_state = env.reset()[0]
-        state = return_state_index(reset_state[2], reset_state[3])  # for Angular velocity
-        while t < 500:
+        state_a = np.digitize(math.degrees(reset_state[2]), angle_space)
+        state_v = np.digitize(reset_state[3], velocity_space)
+        state_p = np.digitize(reset_state[0], position_space)
+        state = (state_a, state_v, state_p)
+        while t < max_steps:
             state2, reward, done, trunc, info = env.step(np.argmax(Q[state]))
             cart_pos = state2[1]
-            state = return_state_index(state2[2], state2[3])  # for angular velocity
+            newstate_a = np.digitize(math.degrees(state2[2]), angle_space)
+            newstate_v = np.digitize(state2[3], velocity_space)
+            newstate_p = np.digitize(state2[0], position_space)
+            state = (newstate_a, newstate_v, newstate_p)
 
             t += 1
 
@@ -276,7 +152,7 @@ def play(Q):
 def main():
     env,Q = create_environment()
     # print(env, Q)
-    Q = train(total_episodes, max_steps, env, Q)
-    play(Q)
+    # Q = train(total_episodes, max_steps, env, Q)
+    play()
 
 main()

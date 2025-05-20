@@ -1,6 +1,6 @@
 import gymnasium as gym
 import numpy as np
-from custom_environment_2  import AccumulateHighestCardsEnv
+from custom_environment_2 import AccumulateHighestCardsEnv
 import pickle
 import matplotlib.pyplot as plt
 
@@ -120,7 +120,7 @@ def play():
     Q = pickle.load(f)
     f.close()
 
-    for i in range(20):
+    for i in range(10):
         t = 0
         reset_state = env.reset()[0]
         state_player = np.digitize(reset_state[0], player_score)

@@ -86,7 +86,7 @@ def train(total_episodes, max_steps, env, Q):
                 break
 
     # saving the Q table in a file
-    f = open("cartpole.pkl", "wb")
+    f = open("cartpole_1.pkl", "wb")
     pickle.dump(Q, f)
     f.close()
 
@@ -113,7 +113,7 @@ def play():
     env = gym.make('CartPole-v1', render_mode='human')
 
     # Read the Q table from the File
-    f = open("cartpole.pkl", "rb")
+    f = open("cartpole_1.pkl", "rb")
     Q = pickle.load(f)
     f.close()
 
